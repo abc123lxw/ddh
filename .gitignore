@@ -36,7 +36,9 @@ ENV/
 # 环境变量和配置文件（包含敏感信息）
 .env
 .env.local
-config.py
+# 根目录的 config.py 被忽略，但子目录中的可以提交
+/config.py
+!**/config.py
 !config.example.py
 
 # 日志文件

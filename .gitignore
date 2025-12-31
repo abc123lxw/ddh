@@ -2,75 +2,13 @@
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# 虚拟环境
-venv/
-env/
-ENV/
-.venv
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# 环境变量和配置文件（包含敏感信息）
-.env
-.env.local
-# 根目录的 config.py 被忽略，但子目录中的可以提交
-/config.py
-!**/config.py
-!config.example.py
-
-# 日志文件
-*.log
-logs/
 
 # 输出目录
 output/
-*.csv
-*.xlsx
-*.json
-
-# 临时文件
-*.tmp
-*.temp
-.DS_Store
-Thumbs.db
 
 # 离线包目录
 offline_packages/
 
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb
-
-# 数据库文件
-*.db
-*.sqlite
-*.sqlite3
-
-# 压缩文件
-*.zip
-*.tar.gz
-*.rar
-
+# 临时文件
+*.tmp
+*.log

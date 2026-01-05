@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 输出目录
+output/
+
+# 离线包目录
+offline_packages/
+
+# 临时文件
+*.tmp
+*.log

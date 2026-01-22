@@ -1,0 +1,20 @@
+services:
+  log-analyzer:
+    image: log-analyzer:latest
+    container_name: log-analyzer
+    ports:
+      - "8005:8000"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./reports:/app/reports
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CONFIG_PATH=/app/config.yaml
+    restart: unless-stopped
+
+# 注意: 不使用docker-compose部署MinIO，使用已有的MinIO服务
+# MinIO地址: 10.163.25.156:9300
+# 已在config.yaml中配置
+
+# 如果需要一次性分析某个容器，使用以下命令：
+# docker run --rm -v $(pwd)/config.yaml:/app/config.yaml:ro -v $(pwd)/reports:/app/reports -v /var/run/docker.sock:/var/run/docker.sock:ro -e CONTAINER_NAME=容器名 -e MINUTES_AGO=30 log-analyzer:latest python /app/scripts/analyze_service.py

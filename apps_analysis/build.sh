@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# 构建脚本
-
 set -e
 
 echo "开始构建 Log Analyzer..."

@@ -1,0 +1,133 @@
+# 数据库运维分析工具 - 配置文件
+# 所有连接信息在此配置，页面上不输入账号密码，避免网安弱口令告警。
+# 请将下面的 host / port / user / password / database 改为实际值。
+
+# 服务监听
+server:
+  host: "0.0.0.0"
+  port: 8000
+
+# 分析器与报告模板（各任务共用同一套 prompt 时可复用）
+_default_analyzer: &default_analyzer
+  name: "langgraph"
+  params:
+    base_url: "http://your-llm-server/v1"   # 改为你的 LLM 服务地址
+    api_key: "your-api-key"                 # 改为你的 API Key
+    model_name: "your-model-name"
+    timeout: 60
+    prompts:
+      analyze_database: |
+        请基于以下数据库采集数据，输出运维分析报告（执行摘要、性能分析、配置审计、容量规划、优化建议）。
+        分析数据：{database_data}
+        分析时间：{current_time}
+
+# 任务列表（页面上选择任务后，测试连接 / 执行分析均使用此处配置）
+tasks:
+  # ---------- MySQL (opik) ----------
+  - name: "MySQL_opik"
+    description: "MySQL opik 库"
+    source:
+      name: "mysql"
+      params:
+        host: "localhost"
+        port: 5447
+        user: "opik"
+        password: "opik"
+        database: "opik"
+        collect_slow_queries: true
+        collect_processlist: true
+        collect_status: true
+        collect_variables: true
+        collect_indexes: true
+        collect_tables: true
+        slow_query_limit: 100
+        query_timeout: 30
+        read_only_mode: true
+        low_priority: true
+        table_limit: 1000
+        index_limit: 5000
+    analyzer: *default_analyzer
+    sinks:
+      - name: "file"
+        params:
+          output_path: "reports/mysql_opik_{{timestamp}}.md"
+
+  # ---------- PostgreSQL (litellm) ----------
+  - name: "PostgreSQL_litellm"
+    description: "PostgreSQL litellm_db"
+    source:
+      name: "postgresql"
+      params:
+        host: "localhost"
+        port: 5017
+        user: "litellm_user"
+        password: "zhipu2025ddh"
+        database: "litellm_db"
+        collect_slow_queries: true
+        collect_processlist: true
+        collect_status: true
+        collect_variables: true
+        collect_indexes: true
+        collect_tables: true
+        slow_query_limit: 100
+        query_timeout: 30
+        read_only_mode: true
+        table_limit: 1000
+        index_limit: 5000
+    analyzer: *default_analyzer
+    sinks:
+      - name: "file"
+        params:
+          output_path: "reports/postgresql_litellm_{{timestamp}}.md"
+
+  # ---------- PostgreSQL (postgres) ----------
+  - name: "PostgreSQL_postgres"
+    description: "PostgreSQL postgres 库"
+    source:
+      name: "postgresql"
+      params:
+        host: "localhost"
+        port: 54322
+        user: "postgres"
+        password: "ddh2025"
+        database: "postgres"
+        collect_slow_queries: true
+        collect_processlist: true
+        collect_status: true
+        collect_variables: true
+        collect_indexes: true
+        collect_tables: true
+        slow_query_limit: 100
+        query_timeout: 30
+        read_only_mode: true
+        table_limit: 1000
+        index_limit: 5000
+    analyzer: *default_analyzer
+    sinks:
+      - name: "file"
+        params:
+          output_path: "reports/postgresql_postgres_{{timestamp}}.md"
+
+  # ---------- Redis (端口 5448) ----------
+  - name: "Redis_5448"
+    description: "Redis 端口 5448"
+    source:
+      name: "redis"
+      params:
+        host: "localhost"
+        port: 5448
+        password: "opik"
+        database: 0
+        collect_info: true
+        collect_slowlog: true
+        collect_clients: true
+        collect_memory: true
+        collect_keyspace: true
+        collect_config: true
+        slowlog_limit: 100
+        socket_timeout: 30
+    analyzer: *default_analyzer
+    sinks:
+      - name: "file"
+        params:
+          output_path: "reports/redis_5448_{{timestamp}}.md"

@@ -1,0 +1,22 @@
+services:
+  db-ops-analyzer:
+    image: db-ops-analyzer:latest
+    container_name: db-ops-analyzer
+    ports:
+      - "8006:8000"  # 使用8006端口，避免与log-analyzer的8005冲突
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./reports:/app/reports
+    environment:
+      - CONFIG_PATH=/app/config.yaml
+      - SERVER_PORT=8006  # 使用8006端口，避免与8000端口冲突
+    restart: unless-stopped
+    # 使用host网络模式，让容器可以直接访问主机网络（包括外部数据库）
+    # 如果不需要访问外部数据库，可以注释掉下面这行，使用默认的bridge网络
+    network_mode: "host"
+    # 如果使用host网络模式，ports映射会被忽略，服务直接监听8000端口
+    # 访问地址: http://localhost:8000
+
+# 注意: 数据库连接信息在config.yaml中配置
+# 如果需要连接外部数据库（如10.163.25.156），使用host网络模式可以确保网络可达
+# 如果PostgreSQL在同一台机器上，也可以使用host.docker.internal（Windows/Mac）或172.17.0.1（Linux）

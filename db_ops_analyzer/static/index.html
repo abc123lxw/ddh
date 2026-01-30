@@ -1,0 +1,2310 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>数据库运维分析平台</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+  <style>
+    :root {
+      --primary: #0ea5e9;
+      --secondary: #8b5cf6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #3b82f6;
+      --bg: #0f172a;
+      --bg-card: #1e293b;
+      --bg-hover: #334155;
+      --border: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #06b6d4;
+    }
+    
+    * { box-sizing: border-box; }
+    
+    body {
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    
+    /* 顶部导航栏 - 深色专业风格 */
+    header {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-bottom: 2px solid var(--primary);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(14, 165, 233, 0.1);
+    }
+    
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #0ea5e9, #8b5cf6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    header h1::before {
+      content: "🗄️";
+      font-size: 28px;
+      -webkit-text-fill-color: var(--primary);
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #0284c7;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    }
+    
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+    
+    main {
+      padding: 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    
+    /* 指标卡片网格 - 数据库专用 */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+    }
+    
+    .metric-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(14, 165, 233, 0.15);
+      border-color: var(--primary);
+    }
+    
+    .metric-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    
+    .metric-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 8px 0;
+    }
+    
+    .metric-trend {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .metric-trend.up { color: var(--success); }
+    .metric-trend.down { color: var(--danger); }
+    
+    /* 主内容卡片 */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border);
+    }
+    
+    .card-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    /* 数据库连接配置区域 */
+    .db-config {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .form-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .form-group input,
+    .form-group select {
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .form-group input:hover,
+    .form-group select:hover {
+      border-color: var(--primary);
+      background: rgba(14, 165, 233, 0.05);
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+      background: var(--bg-card);
+    }
+    
+    .form-hint {
+      display: block;
+      font-size: 12px;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+    
+    /* 分析选项标签 */
+    .analysis-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 16px 0;
+    }
+    
+    .tag {
+      padding: 8px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .tag:hover {
+      border-color: var(--primary);
+      background: rgba(14, 165, 233, 0.1);
+    }
+    
+    .tag.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+    
+    .tag input[type="checkbox"] {
+      margin: 0;
+      cursor: pointer;
+    }
+    
+    /* 执行按钮 */
+    .action-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .btn-large {
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    
+    /* 进度显示 - 数据库风格 */
+    .progress-container {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    
+    .progress-bar-wrapper {
+      width: 100%;
+      height: 12px;
+      background: var(--bg);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      transition: width 0.3s;
+      border-radius: 6px;
+      position: relative;
+    }
+    
+    .progress-bar-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    /* 报告列表 - 数据库风格 */
+    .reports-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    
+    .report-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    
+    .report-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(14, 165, 233, 0.2);
+    }
+    
+    .report-card.active {
+      border-color: var(--primary);
+      background: rgba(14, 165, 233, 0.1);
+    }
+    
+    .report-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+    
+    .report-id {
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    
+    .report-time {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    
+    .report-db-info {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    
+    .report-db-info span {
+      padding: 4px 10px;
+      background: var(--bg-card);
+      border-radius: 12px;
+      color: var(--text-muted);
+    }
+    
+    /* 报告内容区域 */
+    .report-viewer {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 30px;
+      margin-top: 20px;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    
+    .report-viewer::-webkit-scrollbar {
+      width: 10px;
+    }
+    
+    .report-viewer::-webkit-scrollbar-track {
+      background: var(--bg);
+      border-radius: 5px;
+    }
+    
+    .report-viewer::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 5px;
+    }
+    
+    .report-viewer::-webkit-scrollbar-thumb:hover {
+      background: var(--primary);
+    }
+    
+    .markdown-content {
+      color: var(--text);
+      line-height: 1.8;
+      font-size: 15px;
+      max-width: 100%;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    
+    .markdown-content p {
+      margin: 8px 0;
+      line-height: 1.6;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    
+    .markdown-content p:empty {
+      margin: 8px 0;
+    }
+    
+    .markdown-content > * {
+      max-width: 100%;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    
+    .markdown-content h1 {
+      font-size: 32px;
+      color: var(--primary);
+      border-bottom: 3px solid var(--primary);
+      padding-bottom: 15px;
+      margin-top: 0;
+      margin-bottom: 20px;
+      margin-top: 20px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    
+    .markdown-content h1:first-child {
+      margin-top: 0;
+    }
+    
+    .markdown-content h2 {
+      font-size: 24px;
+      color: var(--text);
+      margin-top: 32px;
+      margin-bottom: 18px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 12px;
+      font-weight: 600;
+      line-height: 1.6;
+    }
+    
+    .markdown-content h2:first-child {
+      margin-top: 0;
+    }
+    
+    .markdown-content h3 {
+      font-size: 20px;
+      color: var(--accent);
+      margin-top: 28px;
+      margin-bottom: 16px;
+      font-weight: 600;
+      padding-left: 12px;
+      border-left: 4px solid var(--accent);
+      line-height: 1.6;
+    }
+    
+    .markdown-content h4 {
+      font-size: 17px;
+      color: var(--text-muted);
+      margin-top: 24px;
+      margin-bottom: 14px;
+      font-weight: 500;
+      line-height: 1.6;
+    }
+    
+    .markdown-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background: var(--bg-card);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .markdown-content table th,
+    .markdown-content table td {
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+      text-align: left;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      max-width: 300px;
+      line-height: 1.6;
+    }
+    
+    .markdown-content table th {
+      background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg) 100%);
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      max-width: 200px;
+      white-space: nowrap;
+    }
+    
+    .markdown-content table tr:hover {
+      background: rgba(14, 165, 233, 0.05);
+    }
+    
+    /* 数据统计表：报告内第一个表格（Markdown 渲染），列对齐、可视性好 */
+    #reportContent table:first-of-type {
+      table-layout: fixed;
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background: var(--bg-card);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    #reportContent table:first-of-type th,
+    #reportContent table:first-of-type td {
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+      vertical-align: middle;
+      box-sizing: border-box;
+      line-height: 1.5;
+    }
+    #reportContent table:first-of-type th {
+      background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg) 100%);
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 14px;
+    }
+    #reportContent table:first-of-type th:nth-child(1),
+    #reportContent table:first-of-type td:nth-child(1) {
+      width: 48%;
+      text-align: left;
+    }
+    #reportContent table:first-of-type th:nth-child(2),
+    #reportContent table:first-of-type td:nth-child(2) {
+      width: 22%;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    #reportContent table:first-of-type th:nth-child(3),
+    #reportContent table:first-of-type td:nth-child(3) {
+      width: 30%;
+      text-align: center;
+    }
+    #reportContent table:first-of-type tbody tr:hover {
+      background: rgba(14, 165, 233, 0.05);
+    }
+    
+    .markdown-content code {
+      background: rgba(14, 165, 233, 0.15);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      color: var(--accent);
+      font-size: 14px;
+      border: 1px solid rgba(14, 165, 233, 0.2);
+    }
+    
+    .markdown-content pre {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      padding: 18px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 20px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .markdown-content pre code {
+      background: transparent;
+      padding: 0;
+      color: var(--text);
+      border: none;
+    }
+    
+    .markdown-content p {
+      margin: 18px 0;
+      color: var(--text);
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      line-height: 2.2;
+    }
+    
+    .markdown-content p:first-child {
+      margin-top: 0;
+    }
+    
+    .markdown-content p:last-child {
+      margin-bottom: 0;
+    }
+    
+    .markdown-content br {
+      display: block;
+      margin: 10px 0;
+      line-height: 2.2;
+    }
+    
+    .markdown-content ul, .markdown-content ol {
+      margin: 20px 0;
+      padding-left: 32px;
+    }
+    
+    .markdown-content li {
+      margin: 14px 0;
+      color: var(--text);
+      line-height: 2.2;
+    }
+    
+    .markdown-content li p {
+      margin: 8px 0;
+    }
+    
+    .markdown-content blockquote {
+      border-left: 4px solid var(--primary);
+      padding: 15px 20px;
+      margin: 20px 0;
+      background: rgba(14, 165, 233, 0.05);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    
+    .markdown-content hr {
+      border: none;
+      border-top: 2px solid var(--border);
+      margin: 28px 0;
+      clear: both;
+    }
+    
+    .markdown-content blockquote {
+      margin: 20px 0;
+      padding: 12px 16px;
+      border-left: 4px solid var(--primary);
+      background: rgba(14, 165, 233, 0.05);
+      border-radius: 4px;
+    }
+    
+    .markdown-content blockquote p {
+      margin: 8px 0;
+    }
+    
+    .markdown-content blockquote p:first-child {
+      margin-top: 0;
+    }
+    
+    .markdown-content blockquote p:last-child {
+      margin-bottom: 0;
+    }
+    
+    .markdown-content strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+    
+    .markdown-content em {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    
+    /* 状态标签 */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .status-badge.success {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+    
+    .status-badge.warning {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+    
+    .status-badge.danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+    }
+    
+    .status-badge.info {
+      background: rgba(14, 165, 233, 0.2);
+      color: var(--primary);
+    }
+    
+    /* 筛选器 */
+    .filters {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .filter-group label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    
+    /* 通知 */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      border-radius: 8px;
+      padding: 16px 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      min-width: 300px;
+      animation: slideInRight 0.3s;
+    }
+    
+    .notification.success { border-left-color: var(--success); }
+    .notification.error { border-left-color: var(--danger); }
+    .notification.warning { border-left-color: var(--warning); }
+    
+    @keyframes slideInRight {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    /* 空状态 */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+    
+    /* 响应式 */
+    @media (max-width: 768px) {
+      main { padding: 16px; }
+      .metrics-grid { grid-template-columns: 1fr; }
+      .db-config { grid-template-columns: 1fr; }
+      .reports-grid { grid-template-columns: 1fr; }
+    }
+
+    /* 登录页 */
+    #loginScreen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    #loginScreen.hidden { display: none; }
+    .login-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .login-card h2 {
+      margin: 0 0 8px 0;
+      font-size: 22px;
+      background: linear-gradient(135deg, #0ea5e9, #8b5cf6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .login-card .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+    .login-card .form-group { margin-bottom: 20px; }
+    .login-card .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .login-card .form-group input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+    }
+    .login-card .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+    }
+    .login-card .btn-login {
+      width: 100%;
+      padding: 14px;
+      margin-top: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: white;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .login-card .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(14, 165, 233, 0.35);
+    }
+    .login-card .login-error {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 8px;
+      color: #fca5a5;
+      font-size: 14px;
+      display: none;
+    }
+    .login-card .login-error.visible { display: block; }
+  </style>
+</head>
+<body>
+  <!-- 登录页：未登录时显示 -->
+  <div id="loginScreen">
+    <div class="login-card">
+      <h2>🗄️ 数据库运维分析平台</h2>
+      <p class="subtitle">请登录后使用</p>
+      <form id="loginForm" onsubmit="return handleLogin(event)">
+        <div class="form-group">
+          <label for="loginUsername">账号</label>
+          <input type="text" id="loginUsername" name="username" placeholder="请输入账号" required autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">密码</label>
+          <input type="password" id="loginPassword" name="password" placeholder="请输入密码" required autocomplete="current-password" />
+        </div>
+        <div class="login-error" id="loginError"></div>
+        <button type="submit" class="btn-login">登 录</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 主应用：登录后显示 -->
+  <div id="appContent" style="display: none;">
+  <header>
+    <h1>数据库运维分析平台</h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="refreshAll()">🔄 刷新</button>
+      <button class="btn btn-primary" onclick="runAnalysis()">▶️ 开始分析</button>
+      <button class="btn btn-secondary" onclick="logout()" title="退出登录">🚪 退出</button>
+    </div>
+  </header>
+  
+  <main>
+    <!-- 指标概览 -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">数据库连接</div>
+        <div class="metric-value" id="metricConnections">-</div>
+        <div class="metric-trend">实时监控</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">慢查询数量</div>
+        <div class="metric-value" id="metricSlowQueries">-</div>
+        <div class="metric-trend">最近24小时</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">表数量</div>
+        <div class="metric-value" id="metricTables">-</div>
+        <div class="metric-trend">当前数据库</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">索引数量</div>
+        <div class="metric-value" id="metricIndexes">-</div>
+        <div class="metric-trend">优化建议</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">今日分析</div>
+        <div class="metric-value" id="metricTodayReports">0</div>
+        <div class="metric-trend">报告数量</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">系统状态</div>
+        <div class="metric-value" id="metricHealth" style="font-size: 20px;">检查中...</div>
+        <div class="metric-trend">服务状态</div>
+      </div>
+    </div>
+
+    <!-- 数据库分析配置 -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">⚙️ 数据库分析配置</h2>
+        <span class="status-badge info" id="configStatus">未配置</span>
+      </div>
+      
+      <div class="db-config">
+        <!-- 任务选择（优先：连接信息来自 config.yaml，页面不传账号密码，无网安问题） -->
+        <div class="form-group">
+          <label>任务选择</label>
+          <select id="taskSelect" onchange="onTaskSelectChange()">
+            <option value="">加载中...</option>
+          </select>
+        </div>
+        <!-- 当前连接信息（来自 config.yaml，仅展示不含密码） -->
+        <div class="form-group" id="connectionSummaryBlock">
+          <label>当前连接信息（来自 config.yaml）</label>
+          <div id="connectionSummaryText" style="padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-muted); font-size: 14px;">
+            请先选择任务
+          </div>
+        </div>
+        <!-- 使用页面配置覆盖（默认折叠，需要时展开） -->
+        <div class="form-group">
+          <button type="button" class="btn btn-secondary" id="togglePageConfigBtn" onclick="togglePageConfig()" style="margin-bottom: 8px;">
+            ▶ 使用页面配置覆盖（可选）
+          </button>
+          <div id="connectionFormSection" style="display: none;">
+            <div class="form-group">
+              <label>已保存的连接</label>
+              <div style="display: flex; gap: 8px;">
+                <select id="connectionHistory" style="flex: 1;">
+                  <option value="">-- 选择已保存的连接 --</option>
+                </select>
+                <button class="btn btn-secondary" onclick="loadConnectionHistory()" title="刷新">🔄</button>
+                <button class="btn btn-secondary" onclick="deleteConnection()" title="删除选中连接">🗑️</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>数据库类型</label>
+              <select id="dbType">
+                <option value="mysql" selected>MySQL</option>
+                <option value="postgresql">PostgreSQL</option>
+                <option value="redis">Redis</option>
+                <option value="mongodb">MongoDB</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>主机地址</label>
+              <input type="text" id="dbHost" placeholder="localhost" value="localhost" />
+              <small class="form-hint" id="hostHint" style="display: none; color: #ff9800; margin-top: 5px;">💡 提示：Docker 中请使用容器服务名</small>
+            </div>
+            <div class="form-group">
+              <label>端口</label>
+              <input type="number" id="dbPort" placeholder="3306" value="3306" />
+            </div>
+            <div class="form-group">
+              <label>数据库名</label>
+              <input type="text" id="dbName" placeholder="your_database" />
+            </div>
+            <div class="form-group">
+              <label>用户名</label>
+              <input type="text" id="dbUser" placeholder="root" />
+            </div>
+            <div class="form-group">
+              <label>密码</label>
+              <input type="password" id="dbPassword" placeholder="••••••••" />
+            </div>
+            <div class="form-group" id="dbAuthSourceGroup" style="display: none;">
+              <label>认证数据库（MongoDB）</label>
+              <input type="text" id="dbAuthSource" placeholder="admin" value="admin" />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-top: 20px;">
+        <label style="display: block; margin-bottom: 12px; color: var(--text-muted); font-weight: 600;">分析选项</label>
+        <div class="analysis-tags">
+          <label class="tag active">
+            <input type="checkbox" id="optSlowQueries" checked />
+            <span>慢查询分析</span>
+          </label>
+          <label class="tag active">
+            <input type="checkbox" id="optProcesslist" checked />
+            <span>连接池分析</span>
+          </label>
+          <label class="tag active">
+            <input type="checkbox" id="optStatus" checked />
+            <span>状态监控</span>
+          </label>
+          <label class="tag active">
+            <input type="checkbox" id="optVariables" checked />
+            <span>配置审计</span>
+          </label>
+          <label class="tag active">
+            <input type="checkbox" id="optIndexes" checked />
+            <span>索引分析</span>
+          </label>
+          <label class="tag active">
+            <input type="checkbox" id="optTables" checked />
+            <span>表结构分析</span>
+          </label>
+        </div>
+      </div>
+      
+      <div style="margin-top: 20px;">
+        <label style="display: block; margin-bottom: 12px; color: var(--text-muted); font-weight: 600;">性能优化设置</label>
+        <div class="db-config">
+          <div class="form-group">
+            <label>查询超时 (秒)</label>
+            <input type="number" id="queryTimeout" value="30" min="10" max="300" />
+          </div>
+          <div class="form-group">
+            <label>表信息限制</label>
+            <input type="number" id="tableLimit" value="1000" min="100" max="10000" />
+          </div>
+          <div class="form-group">
+            <label>索引信息限制</label>
+            <input type="number" id="indexLimit" value="5000" min="500" max="50000" />
+          </div>
+          <div class="form-group">
+            <label>慢查询限制</label>
+            <input type="number" id="slowQueryLimit" value="100" min="10" max="1000" />
+          </div>
+        </div>
+      </div>
+      
+      <div class="action-section">
+        <div>
+          <label class="tag">
+            <input type="checkbox" id="optReadOnly" checked />
+            <span>只读模式（推荐）</span>
+          </label>
+          <label class="tag" style="margin-left: 10px;">
+            <input type="checkbox" id="optLowPriority" checked />
+            <span>低优先级查询</span>
+          </label>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-secondary btn-large" onclick="testConnection()" id="testConnectionBtn">
+            🔍 测试连接
+          </button>
+          <button class="btn btn-primary btn-large" onclick="runAnalysis()" id="runAnalysisBtn">
+            🚀 执行数据库分析
+          </button>
+        </div>
+      </div>
+      
+      <!-- 进度显示 -->
+      <div id="progressContainer" style="display: none;" class="progress-container">
+        <div class="progress-info">
+          <span id="progressStage">准备中...</span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <div style="margin-top: 12px; font-size: 13px; color: var(--text-muted);" id="progressDetail">
+          正在初始化分析任务...
+        </div>
+      </div>
+    </div>
+
+    <!-- 报告管理 -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">📊 分析报告</h2>
+        <div class="filters">
+          <div class="filter-group">
+            <label>数据库:</label>
+            <select id="filterDatabase" onchange="loadReports()" style="padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+              <option value="">全部</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>显示:</label>
+            <select id="reportLimit" onchange="loadReports()" style="padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+              <option value="10" selected>最近10个</option>
+              <option value="20">最近20个</option>
+              <option value="50">最近50个</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <div id="reportsList" class="reports-grid">
+        <div class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <div>暂无分析报告</div>
+          <div style="margin-top: 8px; font-size: 13px; color: var(--text-muted);">执行分析任务后将显示报告</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 报告内容查看器 -->
+    <div class="card" id="reportViewerCard" style="display: none;">
+      <div class="card-header">
+        <h2 class="card-title">📄 报告详情</h2>
+        <div>
+          <button class="btn btn-secondary" onclick="copyReport()" style="margin-right: 8px;">📋 复制</button>
+          <button class="btn btn-secondary" onclick="closeReport()">✕ 关闭</button>
+        </div>
+      </div>
+      
+      <div id="reportContent" class="report-viewer markdown-content">
+        <!-- 报告内容将在这里显示 -->
+      </div>
+    </div>
+  </main>
+  </div><!-- /#appContent -->
+
+  <script>
+    let pollingInterval = null;
+    let currentRunId = null;
+    let currentTaskName = '';
+    let tasksList = [];  // 任务列表（含 connection_summary），用于展示连接信息
+
+    function onTaskSelectChange() {
+      const sel = document.getElementById('taskSelect');
+      if (!sel) return;
+      currentTaskName = sel.value;
+      const el = document.getElementById('connectionSummaryText');
+      if (!el) return;
+      const task = tasksList.find(t => t.name === currentTaskName);
+      if (!task || !task.connection_summary) {
+        el.textContent = currentTaskName ? '该任务无连接配置' : '请先选择任务';
+        return;
+      }
+      const c = task.connection_summary;
+      const dbLabel = { mysql: 'MySQL', postgresql: 'PostgreSQL', redis: 'Redis', mongodb: 'MongoDB' }[c.db_type] || c.db_type;
+      el.innerHTML = `<strong>${dbLabel}</strong> · ${c.host || '-'}:${c.port || '-'}${c.database ? ' / ' + c.database : ''}`;
+    }
+
+    function togglePageConfig() {
+      const section = document.getElementById('connectionFormSection');
+      const btn = document.getElementById('togglePageConfigBtn');
+      if (!section || !btn) return;
+      const show = section.style.display === 'none';
+      section.style.display = show ? 'block' : 'none';
+      btn.textContent = show ? '▼ 使用页面配置覆盖（可选）' : '▶ 使用页面配置覆盖（可选）';
+      if (show) updateDbTypeUI();
+    }
+
+    // 数据库密码弱口令校验（与后端一致，符合网安要求）
+    const WEAK_DB_PASSWORDS = new Set([
+      '123456', '12345678', '123456789', '1234567890', 'password', 'root', 'admin',
+      '111111', '000000', 'qwerty', 'abc123', 'admin123', 'root123', 'password123',
+      '123123', '654321', '888888', '666666', 'admin888', 'root888', 'test', 'test123'
+    ]);
+    const MIN_DB_PASSWORD_LENGTH = 8;
+    function isWeakDbPassword(pw) {
+      if (!pw || typeof pw !== 'string') return false;
+      const p = pw.trim();
+      if (p.length < MIN_DB_PASSWORD_LENGTH) return true;
+      if (WEAK_DB_PASSWORDS.has(p.toLowerCase())) return true;
+      if (/^\d+$/.test(p) || /^[a-zA-Z]+$/.test(p)) return true;
+      return false;
+    }
+
+    // API 工具函数（携带 cookie 以支持登录态）
+    async function fetchJSON(url, opts = {}) {
+      const finalOpts = { ...opts, credentials: opts.credentials ?? 'include' };
+      const res = await fetch(url, finalOpts);
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || res.statusText);
+      }
+      return res.json();
+    }
+
+    // 登录态检查与登录/登出
+    async function checkAuth() {
+      try {
+        await fetchJSON('/api/auth/check');
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('appContent').style.display = '';
+        initApp();
+      } catch (e) {
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('appContent').style.display = 'none';
+      }
+    }
+    let refreshIntervalId = null;
+    function initApp() {
+      checkHealth();
+      loadTasks();
+      loadReports();
+      updateStats();
+      if (refreshIntervalId) clearInterval(refreshIntervalId);
+      refreshIntervalId = setInterval(function() {
+        updateStats();
+        loadReports();
+      }, 30000);
+    }
+    async function handleLogin(ev) {
+      ev.preventDefault();
+      const errEl = document.getElementById('loginError');
+      errEl.classList.remove('visible');
+      errEl.textContent = '';
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      try {
+        const res = await fetchJSON('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        if (res && res.ok !== false) {
+          document.getElementById('loginScreen').classList.add('hidden');
+          document.getElementById('appContent').style.display = '';
+          initApp();
+        }
+      } catch (e) {
+        let msg = '账号或密码错误';
+        try {
+          const j = JSON.parse(e.message || '{}');
+          if (j.detail) msg = j.detail;
+        } catch (_) {
+          if (e.message && !e.message.includes('401')) msg = e.message;
+        }
+        errEl.textContent = msg;
+        errEl.classList.add('visible');
+      }
+    }
+    async function logout() {
+      try {
+        await fetchJSON('/api/logout', { method: 'POST' });
+      } catch (_) {}
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('appContent').style.display = 'none';
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginError').classList.remove('visible');
+    }
+
+    function showNotification(message, type = 'success') {
+      const notif = document.createElement('div');
+      notif.className = `notification ${type}`;
+      notif.textContent = message;
+      document.body.appendChild(notif);
+      setTimeout(() => {
+        notif.style.animation = 'slideInRight 0.3s reverse';
+        setTimeout(() => notif.remove(), 300);
+      }, 3000);
+    }
+
+    // 健康检查
+    async function checkHealth() {
+      try {
+        const h = await fetchJSON('/health');
+        document.getElementById('metricHealth').textContent = '✅ 正常';
+        document.getElementById('metricHealth').style.color = 'var(--success)';
+      } catch (e) {
+        document.getElementById('metricHealth').textContent = '❌ 异常';
+        document.getElementById('metricHealth').style.color = 'var(--danger)';
+      }
+    }
+
+    // 更新统计信息
+    async function updateStats() {
+      try {
+        const reports = await fetchJSON('/api/reports?limit=100');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayReports = reports.reports.filter(r => {
+          const date = new Date(r.created_at);
+          return date >= today;
+        });
+        document.getElementById('metricTodayReports').textContent = todayReports.length;
+      } catch (e) {
+        console.error('更新统计失败:', e);
+      }
+    }
+
+    // 根据数据库类型调整默认端口和显示字段
+    function updateDbTypeUI() {
+      const dbType = document.getElementById('dbType').value;
+      const portInput = document.getElementById('dbPort');
+      const userGroup = document.getElementById('dbUser').closest('.form-group');
+      const authSourceGroup = document.getElementById('dbAuthSourceGroup');
+      const hostHint = document.getElementById('hostHint');
+      const hostInput = document.getElementById('dbHost');
+      
+      // 保存当前端口值（如果用户已经输入了）
+      const currentPort = portInput.value;
+      
+      // 设置默认端口（只有在端口为空或者是默认值时才设置）
+      if (dbType === 'mysql') {
+        if (!currentPort || currentPort === '5432' || currentPort === '6379' || currentPort === '27017') {
+          portInput.value = 3306;
+        }
+        portInput.placeholder = '3306';
+        userGroup.style.display = '';
+        authSourceGroup.style.display = 'none';
+        hostHint.style.display = 'none';
+      } else if (dbType === 'postgresql') {
+        if (!currentPort || currentPort === '3306' || currentPort === '6379' || currentPort === '27017') {
+          portInput.value = 5432;
+        }
+        portInput.placeholder = '5432';
+        userGroup.style.display = '';
+        authSourceGroup.style.display = 'none';
+        updateHostHint();
+      } else if (dbType === 'redis') {
+        if (!currentPort || currentPort === '3306' || currentPort === '5432' || currentPort === '27017') {
+          portInput.value = 6379;
+        }
+        portInput.placeholder = '6379';
+        userGroup.style.display = 'none';  // Redis 可能不需要用户名
+        authSourceGroup.style.display = 'none';
+        hostHint.style.display = 'none';
+      } else if (dbType === 'mongodb') {
+        if (!currentPort || currentPort === '3306' || currentPort === '5432' || currentPort === '6379') {
+          portInput.value = 27017;
+        }
+        portInput.placeholder = '27017';
+        userGroup.style.display = '';
+        authSourceGroup.style.display = '';
+        hostHint.style.display = 'none';
+      }
+      // 切换数据库类型时，任务下拉框自动选中对应类型的第一个任务
+      selectTaskForDbType(dbType);
+    }
+
+    // 根据当前数据库类型选中第一个匹配的任务
+    function selectTaskForDbType(dbType) {
+      const taskSelect = document.getElementById('taskSelect');
+      if (!taskSelect || !taskSelect.options.length) return;
+      let matchedTask = null;
+      for (let i = 0; i < taskSelect.options.length; i++) {
+        const taskName = taskSelect.options[i].value.toLowerCase();
+        const taskText = taskSelect.options[i].textContent.toLowerCase();
+        if (dbType === 'mysql' && (taskName.includes('mysql') || taskText.includes('mysql'))) {
+          matchedTask = taskSelect.options[i].value;
+          break;
+        }
+        if (dbType === 'postgresql' && (taskName.includes('pg') || taskName.includes('postgres') || taskText.includes('pg') || taskText.includes('postgres'))) {
+          matchedTask = taskSelect.options[i].value;
+          break;
+        }
+        if (dbType === 'redis' && (taskName.includes('redis') || taskText.includes('redis'))) {
+          matchedTask = taskSelect.options[i].value;
+          break;
+        }
+        if (dbType === 'mongodb' && (taskName.includes('mongo') || taskText.includes('mongo'))) {
+          matchedTask = taskSelect.options[i].value;
+          break;
+        }
+      }
+      if (matchedTask) {
+        taskSelect.value = matchedTask;
+        currentTaskName = matchedTask;
+      }
+    }
+    
+    // 更新主机地址提示
+    function updateHostHint() {
+      const dbType = document.getElementById('dbType').value;
+      const hostHint = document.getElementById('hostHint');
+      const hostInput = document.getElementById('dbHost');
+      
+      if (dbType === 'postgresql') {
+        const host = hostInput.value.trim();
+        if (host === 'localhost' || host === '127.0.0.1') {
+          hostHint.style.display = 'block';
+          hostHint.innerHTML = '⚠️ 警告：如果db_ops_analyzer运行在Docker容器中，使用 localhost 无法连接到PostgreSQL容器。请使用容器服务名称（如 windmill-db-1）';
+        } else {
+          hostHint.style.display = 'block';
+          hostHint.innerHTML = '💡 提示：如果db_ops_analyzer运行在Docker容器中，请使用PostgreSQL容器的服务名称（如 windmill-db-1）而不是主机IP';
+        }
+      }
+    }
+    
+    // 监听数据库类型变化
+    document.getElementById('dbType').addEventListener('change', updateDbTypeUI);
+    
+    // 监听主机地址变化（只添加一次）
+    if (!document.getElementById('dbHost').hasAttribute('data-listener-added')) {
+      document.getElementById('dbHost').addEventListener('input', updateHostHint);
+      document.getElementById('dbHost').setAttribute('data-listener-added', 'true');
+    }
+    
+    // 连接历史管理
+    function getConnectionHistory() {
+      try {
+        const history = localStorage.getItem('db_connection_history');
+        return history ? JSON.parse(history) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    
+    function saveConnectionHistory(history) {
+      try {
+        localStorage.setItem('db_connection_history', JSON.stringify(history));
+      } catch (e) {
+        console.error('保存连接历史失败:', e);
+      }
+    }
+    
+    function addConnectionToHistory(config) {
+      const history = getConnectionHistory();
+      const connectionKey = `${config.db_type}_${config.host}_${config.port}_${config.database || 'default'}`;
+      
+      // 检查是否已存在
+      const existingIndex = history.findIndex(c => 
+        c.db_type === config.db_type &&
+        c.host === config.host &&
+        c.port === config.port &&
+        c.database === config.database
+      );
+      
+      const connectionInfo = {
+        ...config,
+        key: connectionKey,
+        saved_at: new Date().toISOString(),
+        display_name: `${config.db_type.toUpperCase()} - ${config.host}:${config.port}${config.database ? '/' + config.database : ''}`
+      };
+      
+      if (existingIndex >= 0) {
+        history[existingIndex] = connectionInfo;
+      } else {
+        history.unshift(connectionInfo);
+      }
+      
+      // 最多保存20个连接
+      if (history.length > 20) {
+        history.pop();
+      }
+      
+      saveConnectionHistory(history);
+      loadConnectionHistory();
+    }
+    
+    function loadConnectionHistory() {
+      const history = getConnectionHistory();
+      const select = document.getElementById('connectionHistory');
+      select.innerHTML = '<option value="">-- 选择已保存的连接 --</option>';
+      
+      history.forEach((conn, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = conn.display_name || `${conn.db_type} - ${conn.host}:${conn.port}`;
+        select.appendChild(option);
+      });
+    }
+    
+    function loadConnectionFromHistory() {
+      const select = document.getElementById('connectionHistory');
+      const index = parseInt(select.value);
+      if (isNaN(index)) return;
+      
+      const history = getConnectionHistory();
+      const conn = history[index];
+      if (!conn) return;
+      
+      // 填充表单（包括端口）
+      const dbType = conn.db_type || 'mysql';
+      document.getElementById('dbType').value = dbType;
+      document.getElementById('dbHost').value = conn.host || '';
+      
+      // 确保端口也被正确设置（优先使用保存的端口）
+      if (conn.port) {
+        document.getElementById('dbPort').value = conn.port;
+      } else {
+        // 根据数据库类型设置默认端口
+        if (dbType === 'mysql') {
+          document.getElementById('dbPort').value = 3306;
+        } else if (dbType === 'postgresql') {
+          document.getElementById('dbPort').value = 5432;
+        } else if (dbType === 'redis') {
+          document.getElementById('dbPort').value = 6379;
+        } else if (dbType === 'mongodb') {
+          document.getElementById('dbPort').value = 27017;
+        }
+      }
+      document.getElementById('dbName').value = conn.database || '';
+      document.getElementById('dbUser').value = conn.user || '';
+      document.getElementById('dbPassword').value = conn.password || '';
+      if (conn.auth_source) {
+        document.getElementById('dbAuthSource').value = conn.auth_source;
+      }
+      
+      // 保存端口值（在updateDbTypeUI之前）
+      const savedPort = conn.port;
+      
+      // 更新UI（这会设置默认端口，但我们会立即恢复保存的端口）
+      updateDbTypeUI();
+      
+      // 立即恢复保存的端口（必须在updateDbTypeUI之后）
+      if (savedPort) {
+        document.getElementById('dbPort').value = savedPort;
+      }
+      
+      // 根据数据库类型自动选择对应的任务
+      const taskSelect = document.getElementById('taskSelect');
+      if (taskSelect && taskSelect.options.length > 0) {
+        // 查找匹配的任务（优先精确匹配，然后模糊匹配）
+        let matchedTask = null;
+        const dbTypeLower = dbType.toLowerCase();
+        
+        // 先尝试精确匹配
+        for (let i = 0; i < taskSelect.options.length; i++) {
+          const taskName = taskSelect.options[i].value.toLowerCase();
+          const taskText = taskSelect.options[i].textContent.toLowerCase();
+          
+          if (dbTypeLower === 'postgresql' && (taskName.includes('postgresql') || taskText.includes('postgresql'))) {
+            matchedTask = taskSelect.options[i].value;
+            break;
+          } else if (dbTypeLower === 'mysql' && (taskName.includes('mysql') || taskText.includes('mysql'))) {
+            matchedTask = taskSelect.options[i].value;
+            break;
+          } else if (dbTypeLower === 'redis' && (taskName.includes('redis') || taskText.includes('redis'))) {
+            matchedTask = taskSelect.options[i].value;
+            break;
+          } else if (dbTypeLower === 'mongodb' && (taskName.includes('mongodb') || taskText.includes('mongodb'))) {
+            matchedTask = taskSelect.options[i].value;
+            break;
+          }
+        }
+        
+        if (matchedTask) {
+          taskSelect.value = matchedTask;
+          currentTaskName = matchedTask;
+        }
+      }
+      
+      showNotification('✅ 已加载连接信息', 'success');
+    }
+    
+    function deleteConnection() {
+      const select = document.getElementById('connectionHistory');
+      const index = parseInt(select.value);
+      if (isNaN(index)) {
+        showNotification('❌ 请先选择要删除的连接', 'error');
+        return;
+      }
+      
+      if (!confirm('确定要删除这个连接吗？')) return;
+      
+      const history = getConnectionHistory();
+      history.splice(index, 1);
+      saveConnectionHistory(history);
+      loadConnectionHistory();
+      showNotification('✅ 已删除连接', 'success');
+    }
+    
+    // 监听连接历史选择
+    document.getElementById('connectionHistory').addEventListener('change', loadConnectionFromHistory);
+    
+    // 初始化加载连接历史
+    loadConnectionHistory();
+    
+    // 测试连接（默认使用 config.yaml，不传账号密码；展开「使用页面配置」时用表单）
+    async function testConnection() {
+      const testBtn = document.getElementById('testConnectionBtn');
+      const originalText = testBtn.textContent;
+      testBtn.disabled = true;
+      testBtn.textContent = '⏳ 测试中...';
+
+      const finishTest = (result, errorMsg) => {
+        testBtn.disabled = false;
+        testBtn.textContent = originalText;
+        if (result && result.status === 'success') {
+          let msg = '✅ 连接成功！';
+          if (result.version) msg += ` (${result.database_type} ${result.version})`;
+          else msg += ` (${result.database_type})`;
+          showNotification(msg, 'success');
+        } else {
+          showNotification('❌ 连接失败', 'error');
+          if (errorMsg) {
+            setTimeout(() => {
+              const d = document.createElement('div');
+              d.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e1e1e; border: 2px solid #ff4444; border-radius: 8px; padding: 20px; max-width: 700px; max-height: 80vh; overflow-y: auto; z-index: 10000;';
+              d.innerHTML = `<div style="color: #ff4444; font-weight: bold; margin-bottom: 15px;">❌ 连接测试失败</div><div style="color: #ccc; white-space: pre-wrap; font-size: 13px;">${errorMsg}</div><button onclick="this.parentElement.remove()" style="margin-top: 15px; padding: 8px 20px; background: #ff4444; color: white; border: none; border-radius: 4px; cursor: pointer;">关闭</button>`;
+              document.body.appendChild(d);
+            }, 300);
+          }
+        }
+      };
+
+      try {
+        if (usePageConfig()) {
+          const dbType = document.getElementById('dbType').value;
+          const host = document.getElementById('dbHost').value;
+          const port = parseInt(document.getElementById('dbPort').value) || 3306;
+          const database = document.getElementById('dbName').value;
+          const user = document.getElementById('dbUser').value;
+          const password = document.getElementById('dbPassword').value;
+          const authSource = document.getElementById('dbAuthSource').value;
+          if (!host) { testBtn.disabled = false; testBtn.textContent = originalText; showNotification('❌ 请填写主机地址', 'error'); return; }
+          if ((dbType === 'mysql' || dbType === 'postgresql') && (!user || !password)) { testBtn.disabled = false; testBtn.textContent = originalText; showNotification('❌ 请填写用户名和密码', 'error'); return; }
+          if ((dbType === 'mysql' || dbType === 'postgresql') && password && isWeakDbPassword(password)) { testBtn.disabled = false; testBtn.textContent = originalText; showNotification('❌ 不允许使用弱口令连接数据库', 'error'); return; }
+          if ((dbType === 'redis' || dbType === 'mongodb') && password && isWeakDbPassword(password)) { testBtn.disabled = false; testBtn.textContent = originalText; showNotification('❌ 不允许使用弱口令连接数据库', 'error'); return; }
+          const testConfig = { db_type: dbType, host, port, database: database || null, user: user || null, password: password || null };
+          if (dbType === 'mongodb' && authSource) testConfig.auth_source = authSource;
+          const response = await fetch('/api/test-connection', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(testConfig) });
+          const result = await response.json();
+          finishTest(result, result.error || result.message);
+          if (result.status === 'success') addConnectionToHistory({ db_type: dbType, host, port, database: database || null, user: user || null, password: password || null, auth_source: dbType === 'mongodb' ? authSource : null });
+        } else {
+          if (!currentTaskName) { testBtn.disabled = false; testBtn.textContent = originalText; showNotification('❌ 请先选择任务', 'error'); return; }
+          const result = await fetchJSON(`/api/tasks/${currentTaskName}/test-connection`, { method: 'POST', credentials: 'include' });
+          finishTest(result, result.error || result.message);
+        }
+      } catch (e) {
+        testBtn.disabled = false;
+        testBtn.textContent = originalText;
+        showNotification('❌ 测试连接失败: ' + (e.message || String(e)), 'error');
+      }
+    }
+    
+    // 执行分析（默认使用 config.yaml 不传账号密码；展开「使用页面配置」时用表单）
+    async function runAnalysis() {
+      if (!usePageConfig()) {
+        if (!currentTaskName) {
+          showNotification('❌ 请先选择任务', 'error');
+          return;
+        }
+        const runBtn = document.getElementById('runAnalysisBtn');
+        try {
+          if (runBtn) { runBtn.disabled = true; runBtn.textContent = '⏳ 启动中...'; }
+          const res = await fetchJSON(`/api/tasks/${currentTaskName}/run`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: 'null' });
+          showNotification('✅ 分析任务已启动', 'success');
+          if (runBtn) runBtn.textContent = '⏳ 运行中...';
+          startPolling(res.run_id);
+          updateStats();
+        } catch (e) {
+          showNotification('❌ 启动失败: ' + (e.message || String(e)), 'error');
+          if (runBtn) { runBtn.disabled = false; runBtn.textContent = '🚀 执行数据库分析'; }
+        }
+        return;
+      }
+
+      const dbType = document.getElementById('dbType').value;
+      const host = document.getElementById('dbHost').value;
+      const port = parseInt(document.getElementById('dbPort').value) || 3306;
+      const database = document.getElementById('dbName').value;
+      const user = document.getElementById('dbUser').value;
+      const password = document.getElementById('dbPassword').value;
+      const authSource = document.getElementById('dbAuthSource').value;
+
+      // 验证必填字段
+      if (!host) {
+        showNotification('❌ 请填写主机地址', 'error');
+        return;
+      }
+      
+      // MySQL 和 PostgreSQL 需要用户名和密码
+      if (dbType === 'mysql' || dbType === 'postgresql') {
+        if (!user) {
+          showNotification('❌ 请填写用户名', 'error');
+          return;
+        }
+        if (!password) {
+          showNotification('❌ 请填写密码', 'error');
+          return;
+        }
+      }
+      
+      // MongoDB 如果提供了用户名，则需要密码
+      if (dbType === 'mongodb' && user && !password) {
+        showNotification('❌ 如果提供了用户名，则必须提供密码', 'error');
+        return;
+      }
+      // 弱口令校验：符合网安要求，不允许使用弱口令连接数据库
+      if ((dbType === 'mysql' || dbType === 'postgresql') && password && isWeakDbPassword(password)) {
+        showNotification('❌ 为符合安全策略，不允许使用弱口令连接数据库。请使用至少8位、含字母与数字的强密码；若无法修改数据库密码，可联系网安做白名单。', 'error');
+        return;
+      }
+      if ((dbType === 'redis' || dbType === 'mongodb') && password && isWeakDbPassword(password)) {
+        showNotification('❌ 为符合安全策略，不允许使用弱口令连接数据库。请使用至少8位、含字母与数字的强密码；若无法修改数据库密码，可联系网安做白名单。', 'error');
+        return;
+      }
+
+      // 收集分析选项
+      const collectSlowQueries = document.getElementById('optSlowQueries').checked;
+      const collectProcesslist = document.getElementById('optProcesslist').checked;
+      const collectStatus = document.getElementById('optStatus').checked;
+      const collectVariables = document.getElementById('optVariables').checked;
+      const collectIndexes = document.getElementById('optIndexes').checked;
+      const collectTables = document.getElementById('optTables').checked;
+
+      // 收集性能优化参数
+      const queryTimeout = parseInt(document.getElementById('queryTimeout').value) || 30;
+      const tableLimit = parseInt(document.getElementById('tableLimit').value) || 1000;
+      const indexLimit = parseInt(document.getElementById('indexLimit').value) || 5000;
+      const slowQueryLimit = parseInt(document.getElementById('slowQueryLimit').value) || 100;
+      const readOnlyMode = document.getElementById('optReadOnly').checked;
+      const lowPriority = document.getElementById('optLowPriority').checked;
+
+      // 构建配置对象（根据数据库类型）
+      const dbConfig = {
+        db_type: dbType,  // 添加数据库类型标识
+        host: host,
+        port: port,
+        database: database || null
+      };
+      
+      // 只有当密码不为空时才添加
+      if (password) {
+        dbConfig.password = password;
+      }
+      
+      // MySQL 和 PostgreSQL 需要用户名
+      if (dbType === 'mysql' || dbType === 'postgresql' || dbType === 'mongodb') {
+        dbConfig.user = user;
+      }
+      
+      // MongoDB 需要认证数据库
+      if (dbType === 'mongodb' && authSource) {
+        dbConfig.auth_source = authSource;
+      }
+      
+      // Redis 使用 database 作为数据库编号（0-15），API 要求为字符串
+      if (dbType === 'redis') {
+        dbConfig.database = String(parseInt(database, 10) || 0);
+      }
+      
+      // 通用收集选项（MySQL/PostgreSQL）
+      if (dbType === 'mysql' || dbType === 'postgresql') {
+        dbConfig.collect_slow_queries = collectSlowQueries;
+        dbConfig.collect_processlist = collectProcesslist;
+        dbConfig.collect_status = collectStatus;
+        dbConfig.collect_variables = collectVariables;
+        dbConfig.collect_indexes = collectIndexes;
+        dbConfig.collect_tables = collectTables;
+        dbConfig.slow_query_limit = slowQueryLimit;
+        dbConfig.query_timeout = queryTimeout;
+        dbConfig.read_only_mode = readOnlyMode;
+        dbConfig.table_limit = tableLimit;
+        dbConfig.index_limit = indexLimit;
+        if (dbType === 'mysql') {
+          dbConfig.low_priority = lowPriority;
+        }
+      }
+      
+      // Redis 特定选项
+      if (dbType === 'redis') {
+        dbConfig.collect_info = collectStatus;
+        dbConfig.collect_slowlog = collectSlowQueries;
+        dbConfig.collect_clients = collectProcesslist;
+        dbConfig.collect_memory = collectStatus;
+        dbConfig.collect_keyspace = collectTables;
+        dbConfig.collect_config = collectVariables;
+        dbConfig.slowlog_limit = slowQueryLimit;
+        dbConfig.socket_timeout = queryTimeout;
+      }
+      
+      // MongoDB 特定选项
+      if (dbType === 'mongodb') {
+        dbConfig.collect_server_status = collectStatus;
+        dbConfig.collect_database_stats = collectTables;
+        dbConfig.collect_collection_stats = collectTables;
+        dbConfig.collect_indexes = collectIndexes;
+        dbConfig.collect_operations = collectStatus;
+        dbConfig.collect_connections = collectProcesslist;
+        dbConfig.collection_limit = tableLimit;
+        dbConfig.index_limit = indexLimit;
+        dbConfig.socket_timeout_ms = queryTimeout * 1000;
+      }
+      
+      // 执行任务
+      const runBtn = document.getElementById('runAnalysisBtn');
+      try {
+        // 禁用执行按钮，防止重复提交
+        if (runBtn) {
+          runBtn.disabled = true;
+          runBtn.textContent = '⏳ 启动中...';
+        }
+        
+        const res = await fetchJSON(`/api/tasks/${currentTaskName}/run`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(dbConfig)
+        });
+        
+        showNotification('✅ 分析任务已启动', 'success');
+        
+        // 更新按钮状态
+        if (runBtn) {
+          runBtn.textContent = '⏳ 运行中...';
+        }
+        
+        startPolling(res.run_id);
+        updateStats();
+      } catch (e) {
+        showNotification('❌ 启动失败: ' + e.message, 'error');
+        // 恢复按钮
+        if (runBtn) {
+          runBtn.disabled = false;
+          runBtn.textContent = '🚀 执行数据库分析';
+        }
+      }
+    }
+
+    // 轮询任务状态
+    function startPolling(runId) {
+      if (pollingInterval) clearInterval(pollingInterval);
+      currentRunId = runId;
+      
+      const progressContainer = document.getElementById('progressContainer');
+      progressContainer.style.display = 'block';
+      
+      pollingInterval = setInterval(async () => {
+        try {
+          const r = await fetchJSON(`/api/runs/${runId}`);
+          updateProgress(r);
+          
+          if (r.status === 'completed' || r.status === 'failed') {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+            
+            if (r.status === 'completed') {
+              showNotification('✅ 分析完成！', 'success');
+              if (usePageConfig()) {
+                const dbType = document.getElementById('dbType').value;
+                const host = document.getElementById('dbHost').value;
+                const port = parseInt(document.getElementById('dbPort').value) || 3306;
+                const database = document.getElementById('dbName').value;
+                const user = document.getElementById('dbUser').value;
+                const password = document.getElementById('dbPassword').value;
+                addConnectionToHistory({ db_type: dbType, host, port, database: database || null, user: user || null, password: password || null, auth_source: dbType === 'mongodb' ? document.getElementById('dbAuthSource').value : null });
+              }
+              // 恢复按钮
+              const runBtn = document.getElementById('runAnalysisBtn');
+              if (runBtn) {
+                runBtn.disabled = false;
+                runBtn.textContent = '🚀 执行数据库分析';
+              }
+              if (r.report_id) {
+                setTimeout(() => viewReport(r.report_id), 1000);
+              }
+              loadReports();
+              updateStats();
+            } else if (r.status === 'failed') {
+              let errorMsg = r.error || '未知错误';
+              let shortErrorMsg = errorMsg.split('\n')[0];
+              let showDetailedError = false;
+              
+              // 改进错误信息显示
+              if (errorMsg.includes('无法连接到') || errorMsg.includes('连接失败') || errorMsg.includes('ConnectionError') || errorMsg.includes('连接被拒绝')) {
+                shortErrorMsg = '❌ 数据库连接失败';
+                showDetailedError = true;
+                
+                // 构建详细的解决方案
+                let solution = '数据库连接失败\n\n错误详情：' + errorMsg;
+                
+                if (errorMsg.includes('localhost') || errorMsg.includes('127.0.0.1')) {
+                  solution += '\n\n💡 解决方案：\n';
+                  solution += '1. 如果db_ops_analyzer运行在Docker容器中，请使用PostgreSQL容器的服务名称（如 windmill-db-1）\n';
+                  solution += '2. 确保两个容器在同一个Docker网络中\n';
+                  solution += '3. 检查PostgreSQL是否监听所有接口（listen_addresses = \'*\')';
+                } else if (errorMsg.includes('timeout') || errorMsg.includes('超时')) {
+                  solution += '\n\n💡 可能的原因：\n';
+                  solution += '1. 网络不通或防火墙阻止\n';
+                  solution += '2. PostgreSQL服务未运行\n';
+                  solution += '3. 主机地址或端口不正确';
+                }
+                
+                errorMsg = solution;
+              }
+              
+              // 显示简短错误信息
+              showNotification(shortErrorMsg, 'error');
+              
+              // 如果错误信息较长，显示详细错误对话框
+              if (showDetailedError || errorMsg.length > 100) {
+                console.error('详细错误信息:', errorMsg);
+                setTimeout(() => {
+                  // 创建一个更友好的错误显示
+                  const errorDiv = document.createElement('div');
+                  errorDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e1e1e; border: 2px solid #ff4444; border-radius: 8px; padding: 20px; max-width: 600px; max-height: 80vh; overflow-y: auto; z-index: 10000; box-shadow: 0 4px 20px rgba(0,0,0,0.5);';
+                  errorDiv.innerHTML = `
+                    <div style="color: #ff4444; font-size: 18px; font-weight: bold; margin-bottom: 15px;">❌ 数据库连接失败</div>
+                    <div style="color: #ccc; white-space: pre-wrap; font-family: monospace; font-size: 13px; line-height: 1.6; margin-bottom: 15px;">${errorMsg}</div>
+                    <button onclick="this.parentElement.remove()" style="background: #ff4444; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; float: right;">关闭</button>
+                    <div style="clear: both;"></div>
+                  `;
+                  document.body.appendChild(errorDiv);
+                }, 500);
+              }
+              
+              // 恢复按钮
+              const runBtn = document.getElementById('runAnalysisBtn');
+              if (runBtn) {
+                runBtn.disabled = false;
+                runBtn.textContent = '🚀 执行数据库分析';
+              }
+            }
+          }
+        } catch (e) {
+          console.error('轮询失败:', e);
+        }
+      }, 2000);
+    }
+
+    // 更新进度
+    function updateProgress(run) {
+      const stage = run.stage || 'queued';
+      const progress = run.progress || {};
+      const percentage = progress.percentage || 0;
+      
+      const stageMap = {
+        'queued': '⏳ 排队中...',
+        'collecting': '📥 收集数据库信息...',
+        'analyzing': '🧠 AI分析中...',
+        'saving': '💾 保存结果...',
+        'finished': '✅ 已完成',
+        'failed': '❌ 失败'
+      };
+      
+      document.getElementById('progressStage').textContent = stageMap[stage] || stage;
+      document.getElementById('progressPercent').textContent = percentage + '%';
+      document.getElementById('progressFill').style.width = percentage + '%';
+      document.getElementById('progressDetail').textContent = 
+        `状态: ${stageMap[stage] || stage} | 进度: ${percentage}%`;
+    }
+
+    // 加载报告列表
+    async function loadReports() {
+      try {
+        const limit = document.getElementById('reportLimit').value || '10';
+        const url = `/api/reports?limit=${limit}`;
+        const data = await fetchJSON(url);
+        const reports = data.reports || [];
+        
+        const reportsList = document.getElementById('reportsList');
+        
+        if (reports.length === 0) {
+          reportsList.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📋</div>
+              <div>暂无分析报告</div>
+            </div>
+          `;
+          return;
+        }
+        
+        reportsList.innerHTML = reports.map(r => {
+          const time = r.created_at ? r.created_at.replace('T', ' ').substring(0, 19) : '-';
+          const taskName = r.task_name || '未知任务';
+          
+          return `
+            <div class="report-card" onclick="viewReport('${r.id}')" data-id="${r.id}">
+              <div class="report-card-header">
+                <div class="report-id">${r.id}</div>
+                <div class="report-time">${time}</div>
+              </div>
+              <div style="margin-top: 12px; font-weight: 600; color: var(--text);">
+                ${taskName}
+              </div>
+              <div class="report-db-info">
+                <span>📊 分析报告</span>
+                <span>🗄️ ${r.database || 'all'}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        document.getElementById('reportsList').innerHTML = 
+          `<div style="color: var(--danger); padding: 20px;">错误: ${err.message}</div>`;
+      }
+    }
+
+    // 查看报告
+    async function viewReport(reportId) {
+      // 高亮选中的报告
+      document.querySelectorAll('.report-card').forEach(el => {
+        el.classList.remove('active');
+      });
+      document.querySelector(`[data-id="${reportId}"]`)?.classList.add('active');
+      
+      // 显示报告查看器
+      document.getElementById('reportViewerCard').style.display = 'block';
+      document.getElementById('reportViewerCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      
+      // 显示加载状态
+      document.getElementById('reportContent').innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">⏳ 加载中...</div>';
+      
+      try {
+        const r = await fetch(`/api/reports/${reportId}`, { credentials: 'include' });
+        if (!r.ok) throw new Error(await r.text());
+        const text = await r.text();
+        
+        // 保存原始文本用于复制
+        currentReportText = text;
+        
+        // 使用 marked 渲染 Markdown（报告内含 HTML 表格，须保留原始 HTML 不转义）
+        if (typeof marked !== 'undefined') {
+          marked.setOptions({
+            breaks: false,
+            gfm: true,
+            headerIds: true,
+            mangle: false,
+            sanitize: false   // 不转义 HTML，使 <table> 等能正常渲染
+          });
+
+          let html = marked.parse(text);
+          // 若某版本仍把 HTML 转义成 &lt; &gt;，则还原报告里的表格标签
+          if (html.includes('&lt;table') && html.includes('report-stats-table')) {
+            html = html.replace(/&lt;(\/?(?:table|thead|tbody|tr|th|td)(?:\s[^&]*)?)&gt;/g, '<$1>');
+          }
+
+          html = enhanceReportHTML(html);
+          document.getElementById('reportContent').innerHTML = html;
+        } else {
+          // 降级方案：纯文本显示，保留换行
+          document.getElementById('reportContent').innerHTML = 
+            '<pre style="white-space: pre-wrap; font-family: inherit; background: transparent; border: none; padding: 0; margin: 0;">' + 
+            text.replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
+            '</pre>';
+        }
+      } catch (e) {
+        document.getElementById('reportContent').innerHTML = 
+          `<div style="color: var(--danger); padding: 20px;">错误: ${e.message}</div>`;
+      }
+    }
+    
+    // 增强报告HTML，添加层次和重点
+    function enhanceReportHTML(html) {
+      // 创建临时容器
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      
+      // 处理标题，添加图标和样式
+      tempDiv.querySelectorAll('h1').forEach(h1 => {
+        h1.style.cssText = 'font-size: 28px; font-weight: 700; margin: 30px 0 20px 0; padding-bottom: 15px; border-bottom: 3px solid var(--primary); color: var(--primary); display: flex; align-items: center; gap: 10px;';
+        if (!h1.textContent.includes('📊')) {
+          h1.innerHTML = '📊 ' + h1.innerHTML;
+        }
+      });
+      
+      tempDiv.querySelectorAll('h2').forEach(h2 => {
+        h2.style.cssText = 'font-size: 22px; font-weight: 600; margin: 25px 0 15px 0; padding: 12px 0 8px 0; border-bottom: 2px solid var(--border); color: var(--text); display: flex; align-items: center; gap: 8px;';
+        const text = h2.textContent.trim();
+        if (text.includes('执行摘要') || text.includes('摘要')) {
+          h2.innerHTML = '📋 ' + h2.innerHTML;
+        } else if (text.includes('性能') || text.includes('Performance')) {
+          h2.innerHTML = '⚡ ' + h2.innerHTML;
+        } else if (text.includes('配置') || text.includes('Config')) {
+          h2.innerHTML = '⚙️ ' + h2.innerHTML;
+        } else if (text.includes('容量') || text.includes('Capacity')) {
+          h2.innerHTML = '💾 ' + h2.innerHTML;
+        } else if (text.includes('安全') || text.includes('Security')) {
+          h2.innerHTML = '🔒 ' + h2.innerHTML;
+        } else if (text.includes('优化') || text.includes('Optimization')) {
+          h2.innerHTML = '🚀 ' + h2.innerHTML;
+        } else if (text.includes('错误') || text.includes('Error')) {
+          h2.innerHTML = '❌ ' + h2.innerHTML;
+          h2.style.color = 'var(--danger)';
+        } else if (text.includes('数据统计') || text.includes('Statistics')) {
+          h2.innerHTML = '📈 ' + h2.innerHTML;
+        } else {
+          h2.innerHTML = '📌 ' + h2.innerHTML;
+        }
+      });
+      
+      tempDiv.querySelectorAll('h3').forEach(h3 => {
+        h3.style.cssText = 'font-size: 18px; font-weight: 600; margin: 20px 0 12px 0; color: var(--accent); padding-left: 10px; border-left: 4px solid var(--accent);';
+      });
+      
+      tempDiv.querySelectorAll('h4').forEach(h4 => {
+        h4.style.cssText = 'font-size: 16px; font-weight: 500; margin: 15px 0 10px 0; color: var(--text-muted);';
+      });
+      
+      // 处理重要信息（包含⚠️、❌、✅等emoji的段落）
+      tempDiv.querySelectorAll('p').forEach(p => {
+        const text = p.textContent;
+        // 基础样式：确保段落有合适的间距
+        p.style.cssText = 'margin: 16px 0; line-height: 1.8; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;';
+        
+        if (text.includes('⚠️') || text.includes('❌') || text.includes('错误') || text.includes('无数据')) {
+          p.style.cssText = 'background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); padding: 12px 15px; margin: 16px 0; border-radius: 6px; color: var(--danger); font-weight: 500; line-height: 1.8;';
+        } else if (text.includes('✅') || text.includes('成功') || text.includes('正常')) {
+          p.style.cssText = 'background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--success); padding: 12px 15px; margin: 16px 0; border-radius: 6px; color: var(--success); font-weight: 500; line-height: 1.8;';
+        } else if (text.includes('💡') || text.includes('提示') || text.includes('建议')) {
+          p.style.cssText = 'background: rgba(14, 165, 233, 0.1); border-left: 4px solid var(--info); padding: 12px 15px; margin: 16px 0; border-radius: 6px; color: var(--info); line-height: 1.8;';
+        }
+      });
+      
+      // 处理代码块
+      tempDiv.querySelectorAll('pre').forEach(pre => {
+        pre.style.cssText = 'background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 15px; overflow-x: auto; margin: 15px 0;';
+      });
+      
+      tempDiv.querySelectorAll('code').forEach(code => {
+        if (code.parentElement.tagName !== 'PRE') {
+          code.style.cssText = 'background: rgba(14, 165, 233, 0.2); padding: 2px 6px; border-radius: 4px; font-family: "Courier New", monospace; font-size: 0.9em; color: var(--accent);';
+        } else {
+          code.style.cssText = 'color: var(--text); font-family: "Courier New", monospace;';
+        }
+      });
+      
+      // 处理列表
+      tempDiv.querySelectorAll('ul, ol').forEach(list => {
+        list.style.cssText = 'margin: 15px 0; padding-left: 25px; line-height: 1.8; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;';
+      });
+      
+      tempDiv.querySelectorAll('li').forEach(li => {
+        li.style.cssText = 'margin: 8px 0; color: var(--text); line-height: 1.8; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;';
+        // 高亮重要列表项
+        if (li.textContent.includes('Critical') || li.textContent.includes('紧急') || li.textContent.includes('高优先级')) {
+          li.style.cssText += 'font-weight: 600; color: var(--danger);';
+        } else if (li.textContent.includes('High') || li.textContent.includes('高')) {
+          li.style.cssText += 'font-weight: 500; color: var(--warning);';
+        }
+      });
+      
+      // 处理表格
+      tempDiv.querySelectorAll('table').forEach(table => {
+        table.style.cssText = 'width: 100%; border-collapse: collapse; margin: 20px 0; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; table-layout: auto; word-wrap: break-word; overflow-wrap: break-word;';
+      });
+      
+      tempDiv.querySelectorAll('th').forEach(th => {
+        th.style.cssText = 'background: var(--bg-card); padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid var(--border); color: var(--primary); word-wrap: break-word; overflow-wrap: break-word; max-width: 200px;';
+      });
+      
+      tempDiv.querySelectorAll('td').forEach(td => {
+        td.style.cssText = 'padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text); word-wrap: break-word; overflow-wrap: break-word; max-width: 300px; line-height: 1.6;';
+      });
+      
+      tempDiv.querySelectorAll('tr:last-child td').forEach(td => {
+        td.style.borderBottom = 'none';
+      });
+      
+      // 处理引用块
+      tempDiv.querySelectorAll('blockquote').forEach(blockquote => {
+        blockquote.style.cssText = 'border-left: 4px solid var(--primary); padding: 15px 20px; margin: 20px 0; background: rgba(14, 165, 233, 0.05); border-radius: 6px; color: var(--text-muted); font-style: italic;';
+      });
+      
+      // 处理水平线
+      tempDiv.querySelectorAll('hr').forEach(hr => {
+        hr.style.cssText = 'border: none; border-top: 2px solid var(--border); margin: 30px 0;';
+      });
+      
+      return tempDiv.innerHTML;
+    }
+
+    // 关闭报告
+    function closeReport() {
+      document.getElementById('reportViewerCard').style.display = 'none';
+      document.querySelectorAll('.report-card').forEach(el => {
+        el.classList.remove('active');
+      });
+    }
+
+    // 复制报告 - 保存原始文本以便复制
+    let currentReportText = '';
+    
+    // 复制报告
+    function copyReport() {
+      if (!currentReportText) {
+        const content = document.getElementById('reportContent');
+        if (!content) {
+          showNotification('❌ 没有可复制的内容', 'error');
+          return;
+        }
+        // 尝试从HTML中提取文本，保留换行
+        currentReportText = content.innerText || content.textContent;
+      }
+      
+      // 使用现代API复制
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(currentReportText).then(() => {
+          showNotification('✅ 报告已复制到剪贴板', 'success');
+        }).catch((err) => {
+          // 降级方案：使用传统方法
+          fallbackCopyTextToClipboard(currentReportText);
+        });
+      } else {
+        // 降级方案
+        fallbackCopyTextToClipboard(currentReportText);
+      }
+    }
+    
+    // 降级复制方案
+    function fallbackCopyTextToClipboard(text) {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          showNotification('✅ 报告已复制到剪贴板', 'success');
+        } else {
+          showNotification('❌ 复制失败，请手动选择文本复制', 'error');
+        }
+      } catch (err) {
+        showNotification('❌ 复制失败，请手动选择文本复制', 'error');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // 刷新所有
+    function refreshAll() {
+      checkHealth();
+      loadReports();
+      updateStats();
+      showNotification('🔄 已刷新', 'success');
+    }
+
+    // 加载任务列表（含连接摘要，用于仅用 config 时展示）
+    async function loadTasks() {
+      try {
+        const res = await fetchJSON('/api/tasks');
+        tasksList = res.tasks || [];
+        const taskSelect = document.getElementById('taskSelect');
+        if (taskSelect) {
+          taskSelect.innerHTML = '';
+          tasksList.forEach(task => {
+            const opt = document.createElement('option');
+            opt.value = task.name;
+            opt.textContent = task.name + (task.description ? ` - ${task.description}` : '');
+            taskSelect.appendChild(opt);
+          });
+          if (tasksList.length > 0) {
+            currentTaskName = tasksList[0].name;
+            taskSelect.value = currentTaskName;
+            onTaskSelectChange();
+          }
+        }
+      } catch (e) {
+        console.error('加载任务列表失败:', e);
+      }
+    }
+
+    function usePageConfig() {
+      const section = document.getElementById('connectionFormSection');
+      return section && section.style.display !== 'none' && document.getElementById('dbHost').value.trim();
+    }
+
+    // 页面加载时先检查登录态，通过则显示主应用并初始化
+    checkAuth();
+  </script>
+</body>
+</html>
